@@ -1,10 +1,19 @@
-import { getPokedexNumber } from '../utils';
+import { getPokedexNumber, getFullPokedexNumber } from '../utils';
 import { useEffect, useState } from 'react';
+import TypeCard from './TypeCard';
 
 const PokeCard = (props) => {
   const { selectedPokemon } = props;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const { name, height, abilities, stats, types, moves, sprites } = data || {};
+
+  const imgList = Object.keys(sprites || {}).filter((val) => {
+    if (!sprites[val]) return false;
+    if (['versions', 'other'].includes(val)) return false;
+    return true;
+  });
 
   useEffect(() => {
     if (loading || !localStorage) return;
@@ -28,9 +37,9 @@ const PokeCard = (props) => {
         const res = await fetch(finalUrl);
         const pokemonData = await res.json();
         setData(pokemonData);
-        
+
         console.log(pokemonData);
-        
+
         cache[selectedPokemon] = pokemonData;
         localStorage.setItem('pokedex', JSON.stringify(cache));
       } catch (err) {
@@ -43,9 +52,57 @@ const PokeCard = (props) => {
     fetchPokemonData();
   }, [selectedPokemon]);
 
-  return (
-    <div>
+  if (loading || !data) {
+    return (
+      <div>
+        <h4>Loading...</h4>
+      </div>
+    );
+  }
 
+  return (
+    <div className="poke-card">
+      <div>
+        <h4>#{getFullPokedexNumber(selectedPokemon)}</h4>
+        <h2>{name}</h2>
+      </div>
+      <div className="type-container">
+        {types.map((typeObj, typeIndex) => {
+          return <TypeCard key={typeIndex} type={typeObj?.type?.name} />;
+        })}
+      </div>
+      <img
+        className="default-img"
+        src={'/pokemon/' + getFullPokedexNumber(selectedPokemon) + '.png'}
+        alt={`${name}-large-image`}
+      />
+      <div className="img-container">
+        {imgList.map((spriteUrl, spriteIndex) => {
+          const imgUrl = sprites[spriteUrl];
+          return <img key={spriteIndex} src={imgUrl} alt={`${name}-img-${spriteUrl}`} />;
+        })}
+      </div>
+      <div className="stats-card">
+        {stats.map((statObj, statIndex) => {
+          const { base_stat, stat } = statObj;
+          return (
+            <div key={statIndex} className="stat-item">
+              <p>{stat?.name.replace('-', ' ')}</p>
+              <h4>{base_stat}</h4>
+            </div>
+          );
+        })}
+      </div>
+      <h3>Moves</h3>
+      <div className="pokemon-move-grid">
+        {moves.map((moveObj, moveIndex) => {
+          return (
+            <button key={moveIndex} className="button-card pokemon-move">
+              <p>{moveObj?.move?.name.replace('-', ' ')}</p>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
